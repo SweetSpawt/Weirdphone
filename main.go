@@ -81,10 +81,24 @@ func main() {
 		}
 		fmt.Println(output)
 		Open(image)
+
+		fmt.Print("Guess the word!:")
+
+		guess := bufio.NewReader(os.Stdin)
+		guessInput, err := guess.ReadString('\n')
+		guessInput = strings.TrimSuffix(guessInput, "\n")
+		guessInput = guessInput[0 : len(guessInput)-1]
+		if guessInput == output {
+			fmt.Println("That's correct!")
+		} else {
+			fmt.Println("That's wrong!", output, " was the word!")
+		}
+
 	}
 }
 
 func rhyme(input string) (string, error) {
+
 	resp, err := http.Get("https://api.datamuse.com/words?rel_rhy=" + input)
 	if err != nil {
 		fmt.Println("Error getting rhyme from datamuse:", input, err)
@@ -97,13 +111,15 @@ func rhyme(input string) (string, error) {
 
 	var out []output
 	json.Unmarshal(body, &out)
+
 	if len(out) == 0 {
 		return "Error: No body from datamuse resp", nil
 	}
 
 	var n int
 	rand.Seed(time.Now().UnixNano())
-	n = 0 + rand.Intn(len(out))
+
+	n = 0 + rand.Intn(len(out)-1)
 
 	return out[n].Word, nil
 }
