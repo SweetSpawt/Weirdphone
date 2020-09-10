@@ -55,53 +55,71 @@ type Hits struct {
 }
 
 func main() {
-	fmt.Print("Enter text: ")
-	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print("Enter text: ")
+		reader := bufio.NewReader(os.Stdin)
 
-	input, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println("An error occured while reading input. Please try again", err)
-		return
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("An error occured while reading input. Please try again", err)
+			return
+		}
+
+		input = strings.TrimSuffix(input, "\n")
+		input = input[0 : len(input)-1]
+		fmt.Println(input)
+		output, err := rhyme(input)
+		if err != nil {
+			fmt.Println("Error finding a rhyme:", input, err)
+			os.Exit(1)
+		}
+
+		image, err := imageSearch(output)
+		if err != nil {
+			fmt.Println("Error finding an image:", output, err)
+			os.Exit(1)
+		}
+		fmt.Println(output)
+		Open(image)
+
+		fmt.Print("Guess the word!:")
+
+		guess := bufio.NewReader(os.Stdin)
+		guessInput, err := guess.ReadString('\n')
+		guessInput = strings.TrimSuffix(guessInput, "\n")
+		guessInput = guessInput[0 : len(guessInput)-1]
+		if guessInput == output {
+			fmt.Println("That's correct!")
+		} else {
+			fmt.Println("That's wrong!", output, " was the word!")
+		}
+
 	}
-
-	input = strings.TrimSuffix(input, "\n")
-	input = input[0 : len(input)-1]
-	fmt.Println(input)
-	output, err := rhyme(input)
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-
-	image, err := imageSearch(output)
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-
-	Open(image)
 }
 
 func rhyme(input string) (string, error) {
+
 	resp, err := http.Get("https://api.datamuse.com/words?rel_rhy=" + input)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error getting rhyme from datamuse:", input, err)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error getting body from datamuse:", err)
 	}
 
 	var out []output
 	json.Unmarshal(body, &out)
+
 	if len(out) == 0 {
-		return "", nil
+		return "Error: No body from datamuse resp", nil
 	}
 
 	var n int
 	rand.Seed(time.Now().UnixNano())
-	n = 0 + rand.Intn(len(out))
+
+	n = 0 + rand.Intn(len(out)-1)
 
 	return out[n].Word, nil
 }
@@ -110,12 +128,12 @@ func imageSearch(output string) (string, error) {
 
 	resp, err := http.Get("https://pixabay.com/api/?key=18226674-3cca4777986de04451f60d6cf&q=" + output + "&image_type=photo")
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error getting response from pixabay", err)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error: No body from pixabay", err)
 	}
 
 	var im searchResults
